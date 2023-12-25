@@ -1,15 +1,15 @@
-import pkg_resources
-pkg_resources.require("g4f==0.1.9.3")
+
 import g4f
 import asyncio
 import sys
-
-question = sys.argv[1]
+outfilename = sys.argv[1]
+question = sys.argv[2]
+g4f.debug.logging = True
+g4f.debug.check_version = False
 _providers = [
     g4f.Provider.ChatBase,
     g4f.Provider.Bing,
     g4f.Provider.GptGo,
-    g4f.Provider.You,
     g4f.Provider.Hashnode,
     g4f.Provider.GptForLove,
     g4f.Provider.GPTalk,
@@ -22,10 +22,14 @@ async def run_provider(provider: g4f.Provider.BaseProvider):
             model=g4f.models.default,
             messages=[{"role": "user", "content": question}],
             provider=provider,
-            proxy=""
+            proxy="socks5://GXBefY:qPNTxD@212.102.146.68:8000"
         )
-        return f"{provider.__name__}:" + "MMMstart" + response + "MMM"
-
+        # return f"{provider.__name__}:" + "MMMstart" + response + "MMM"
+        return response
+def pr(string):
+    f = open(outfilename, "w", encoding="utf-8")
+    f.write(string)
+    f.close()
 
 async def run_all():
     tasks = [asyncio.create_task(run_provider(provider)) for provider in _providers]
@@ -36,7 +40,7 @@ async def run_all():
 
             if task.exception() is None:
                 # Task completed successfully, cancel remaining tasks
-                print(task.result())
+                pr(task.result())
                 for remaining_task in tasks:
                     tasks.remove(remaining_task)
                     if remaining_task not in done:
@@ -48,7 +52,6 @@ async def run_all():
 
     # Wait for the canceled tasks to finish (ignore exceptions)
     await asyncio.gather(*tasks, return_exceptions=True)
-
 
 # Use asyncio.run to run the async function
 asyncio.run(run_all())

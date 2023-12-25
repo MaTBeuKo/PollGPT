@@ -1,6 +1,8 @@
 package com.pollgpt.pollgpt.gpt;
 
-import com.pollgpt.pollgpt.external.ProcessExecutor;
+import com.pollgpt.pollgpt.external.G4FExecutor;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -12,31 +14,26 @@ import java.io.IOException;
 @PropertySource("classpath:application.properties")
 public class Gpt4Free implements GptProvider {
     @Autowired
-    public Gpt4Free(ProcessExecutor executor) {
+    public Gpt4Free(G4FExecutor executor, G4FStrategy strategy) {
         this.executor = executor;
+        this.strategy = strategy;
     }
 
-    @Value("${g4f.path}")
-    private String scriptPath;
-    private final ProcessExecutor executor;
+    private final G4FExecutor executor;
+    @Setter
+    private G4FStrategy strategy;
 
-    String parse(String s) {
-        var split = s.split("MMM");
-        for (var t : split) {
-            if (t.startsWith("start")) {
-                return t.substring(5);
-            }
-        }
-        return "no result ;(";
+    private String fileName(G4FStrategy strategy) {
+        return strategy.name().toLowerCase() + ".py";
     }
 
     @Override
     public String ask(String message) {
         try {
-            return parse(executor.execute(scriptPath, message));
+            return executor.execute(fileName(strategy), message);
         } catch (IOException | InterruptedException ex) {
             System.out.println("Error while asking gpt: " + ex.getMessage());
-            return null;
+            return "Im stupid :|";
         }
     }
 }

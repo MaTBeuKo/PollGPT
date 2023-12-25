@@ -10,7 +10,7 @@ import java.util.Objects;
 @Embeddable
 public class AnswerId implements Serializable {
     private long userId;
-    private long messageId;
+    private long pollId;
     private int answerId;
 
     @Override
@@ -18,11 +18,11 @@ public class AnswerId implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AnswerId answerId1 = (AnswerId) o;
-        return userId == answerId1.userId && messageId == answerId1.messageId && answerId == answerId1.answerId;
+        return userId == answerId1.userId && pollId == answerId1.pollId && answerId == answerId1.answerId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userId, messageId, answerId);
+        return Objects.hash(userId, pollId, answerId);
     }
 }

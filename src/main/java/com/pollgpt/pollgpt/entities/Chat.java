@@ -15,8 +15,6 @@ public class Chat {
     private long chatId;
     private long firstMessage;
     private boolean fullyRead;
-    @OneToMany(mappedBy = "chatId", fetch = FetchType.LAZY)
-    private List<Poll> polls;
     public Chat() {
 
     }

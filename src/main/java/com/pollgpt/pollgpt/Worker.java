@@ -57,7 +57,7 @@ public class Worker implements ApplicationListener<NewMessage> {
         for (var entry : userToAnswers.entrySet()) {
             answers.add(new UserAnswer(entry.getKey(), entry.getValue()));
         }
-        dao.AddPoll(message.id, message.chatId, question, options, answers, new Timestamp(message.date * 1000L));
+        dao.AddPoll(poll.poll.id, message.chatId, question, options, answers, new Timestamp(message.date * 1000L));
     }
 
     public void addPolls(long chatId, long fromMessageId, int messageAmount) throws ExecutionException, InterruptedException {
@@ -71,11 +71,7 @@ public class Worker implements ApplicationListener<NewMessage> {
 
     @Scheduled(fixedRate = 5000)
     public void loadPolls() {
-        try {
-            bot.loadMoreChats();
-        }catch (Exception e){
 
-        }
         //bot.loadMoreChats();
 //        List<Long> chats = dao.getUnreadChats(chatsPerUpdate);
 //        for (var chatId : chats) {
@@ -90,6 +86,14 @@ public class Worker implements ApplicationListener<NewMessage> {
 
     @PostConstruct
     public void doSomething() {
+        //System.out.println(provider.ask("say hello in russian"));
+//        long chatId = -1001292617540L;
+//        try {
+//            addPolls(chatId, 0, 10);
+//        } catch (Exception ex) {
+//            System.out.println(ex.getMessage());
+//        }
+        //        bot.sendMessage(config.adminId, "hello");
         //        System.out.println(provider.ask("hello, how are you doing?"));
 //        try {
 //            long chatId = -1001292617540L;
@@ -103,6 +107,16 @@ public class Worker implements ApplicationListener<NewMessage> {
     @Override
     public void onApplicationEvent(@Nonnull NewMessage newMessage) {
         TdApi.Message message = newMessage.getUpdate().message;
+        long id = message.chatId;
+        if (id != config.adminId) return;
+        if (message.content instanceof TdApi.MessagePoll) {
+            try {
+                addPoll(message);
+            } catch (ExecutionException | InterruptedException ex) {
+                System.out.println("Exception while adding poll from new message " + ex.getMessage());
+            }
+            return;
+        }
         if (!(message.content instanceof TdApi.MessageText content)) {
             return;
         }
@@ -111,23 +125,22 @@ public class Worker implements ApplicationListener<NewMessage> {
         }
         Scanner scanner = new Scanner(content.text.text);
         String command = scanner.next();
-        long id = message.chatId;
+
         switch (command) {
             case "/help" -> {
                 bot.sendMessage(id, "No help for you!");
             }
             case "/me" -> {
-                List<Answer> answers = dao.getUserAnswers(id);
+                List<Answer> answers = dao.getUserAnswers(id, 3);
                 if (!answers.isEmpty()) {
                     String request = generator.basicRequest(answers);
                     String result = provider.ask(request);
-                    bot.sendMessage(id, result);
+                    //bot.sendMessage(id, request);
+                    bot.sendMessage(id, Objects.requireNonNullElse(result, "Something went wrong..."));
                 } else {
                     bot.sendMessage(id, "Sorry, I don't know anything about you!");
                 }
             }
         }
     }
-
-
 }

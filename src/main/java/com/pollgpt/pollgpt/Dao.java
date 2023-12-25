@@ -29,13 +29,19 @@ public class Dao {
     public void AddPoll(long messageId, long chatId, String question, List<String> options, List<UserAnswer> userAnswers, Timestamp timestamp) {
         Session session = sessionFactory.getCurrentSession();
         session.beginTransaction();
-        session.persist(new Poll(chatId, question, timestamp, messageId));
+        Chat chat = session.get(Chat.class, chatId);
+        if (chat == null){
+            chat = new Chat();
+            chat.setChatId(chatId);
+            session.persist(chat);
+        }
+        session.merge(new Poll(chatId, question, timestamp, messageId));
         for (int i = 0; i < options.size(); i++) {
-            session.persist(new AnswerDescription(messageId, i + 1, options.get(i)));
+            session.merge(new AnswerDescription(messageId, i, options.get(i)));
         }
         for (var answer : userAnswers) {
             for (var answerId : answer.getAnswersIds()) {
-                session.persist(new Answer(answer.getUserId(), messageId, answerId));
+                session.merge(new Answer(answer.getUserId(), messageId, answerId));
             }
         }
         session.getTransaction().commit();
@@ -47,10 +53,11 @@ public class Dao {
         return session.createNamedQuery("getUnreadChats", Chat.class).setMaxResults(count).stream().map(Chat::getChatId).toList();
     }
 
-    public List<Answer> getUserAnswers(long userId) {
+    public List<Answer> getUserAnswers(long userId, int amount) {
         Session session = sessionFactory.getCurrentSession();
         session.beginTransaction();
-        List<Answer> answers = session.createNamedQuery("getUserAnswers", Answer.class).setParameter("userId", userId).getResultList();
+        List<Answer> answers = session.createNamedQuery("getUserAnswers", Answer.class).setParameter("userId", userId)
+                .setMaxResults(amount).getResultList();
         session.getTransaction().commit();
         return answers;
     }

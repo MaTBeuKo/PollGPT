@@ -29,6 +29,7 @@ public class TelegramBot {
         this.publisher = publisher;
         var clientBuilder = clientFactory.builder(settings);
         registerHandlers(clientBuilder);
+        //this.client = clientBuilder.build(AuthenticationSupplier.bot(config.botToken));
         this.client = clientBuilder.build(AuthenticationSupplier.qrCode());
     }
 
@@ -36,7 +37,7 @@ public class TelegramBot {
         builder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         builder.addCommandHandler("stop", this::onStopCommand);
         builder.addUpdateHandler(TdApi.UpdateNewMessage.class, this::onUpdateNewMessage);
-        builder.addUpdateHandler(TdApi.UpdateChatAction.class, this::onUpdateChatAction);
+        //builder.addUpdateHandler(TdApi.UpdateChatAction.class, this::onUpdateChatAction);
     }
 
     public void close() throws Exception {
@@ -185,10 +186,9 @@ public class TelegramBot {
             return false;
         }
     }
-
     @PreDestroy
     public void destructor() throws Exception {
-        clientFactory.close();
         client.close();
+        clientFactory.close();
     }
 }

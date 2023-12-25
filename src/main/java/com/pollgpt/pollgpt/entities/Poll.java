@@ -14,13 +14,13 @@ public class Poll {
     @Temporal(TemporalType.TIMESTAMP)
     Timestamp timePosted;
     @Id
-    long messageId;
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.REFRESH)
+    long pollId;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REFRESH)
     @JoinColumn(name = "chatId", referencedColumnName = "chatId", insertable = false, updatable = false)
     private Chat chat;
 
-    public Poll(long chatId, String question, Timestamp timePosted, long messageId) {
-        this.messageId = messageId;
+    public Poll(long chatId, String question, Timestamp timePosted, long pollId) {
+        this.pollId = pollId;
         this.question = question;
         this.timePosted = timePosted;
         this.chatId = chatId;

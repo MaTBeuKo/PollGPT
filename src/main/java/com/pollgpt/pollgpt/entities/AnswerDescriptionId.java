@@ -8,7 +8,7 @@ import java.util.Objects;
 
 @Data
 public class AnswerDescriptionId implements Serializable {
-    private long messageId;
+    private long pollId;
     private int optionId;
 
     @Override
@@ -16,11 +16,11 @@ public class AnswerDescriptionId implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AnswerDescriptionId that = (AnswerDescriptionId) o;
-        return messageId == that.messageId && optionId == that.optionId;
+        return pollId == that.pollId && optionId == that.optionId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(messageId, optionId);
+        return Objects.hash(pollId, optionId);
     }
 }
