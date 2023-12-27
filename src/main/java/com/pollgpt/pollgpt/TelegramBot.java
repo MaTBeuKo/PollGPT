@@ -1,9 +1,11 @@
 package com.pollgpt.pollgpt;
 
+import com.pollgpt.pollgpt.events.NewChat;
 import com.pollgpt.pollgpt.events.NewMessage;
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
 import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
 @Component
@@ -21,6 +24,8 @@ public class TelegramBot {
     private final SimpleTelegramClientFactory clientFactory;
     private final BotConfig config;
     private final ApplicationEventPublisher publisher;
+    @Getter
+    private final long messageDivider = 1048576;
 
     @Autowired
     public TelegramBot(BotConfig config, SimpleTelegramClientFactory clientFactory, TDLibSettings settings, ApplicationEventPublisher publisher) {
@@ -35,19 +40,8 @@ public class TelegramBot {
 
     void registerHandlers(SimpleTelegramClientBuilder builder) {
         builder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
-        builder.addCommandHandler("stop", this::onStopCommand);
         builder.addUpdateHandler(TdApi.UpdateNewMessage.class, this::onUpdateNewMessage);
-        //builder.addUpdateHandler(TdApi.UpdateChatAction.class, this::onUpdateChatAction);
-    }
-
-    public void close() throws Exception {
-        client.close();
-        clientFactory.close();
-    }
-
-
-    public SimpleTelegramClient getClient() {
-        return client;
+        builder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateNewChat);
     }
 
     public void sendMessage(long chatId, String text) {
@@ -80,42 +74,22 @@ public class TelegramBot {
         }
     }
 
-    int cnt = 0;
-
-    public boolean loadMoreChats(){
-        var req = new TdApi.LoadChats();
-        req.limit = 1;
-        req.chatList = new TdApi.ChatListArchive();
-        //sendMessage(config.adminId, "loading chats");
-        try {
-            client.send(req).get();
-
-        } catch (Exception ex) {
-            System.out.println("While loading more chats:");
-            System.out.println(ex.getMessage());
-            return false;
-        }
-        return true;
-    }
-
-    private void onUpdateChatAction(TdApi.UpdateChatAction update) {
-        System.out.println("Chat action" + cnt++);
-        System.out.println(" ");
-    }
-
     public TdApi.Message[] getSomeMessages(long chatId, long fromMessage, int limit) throws InterruptedException, ExecutionException {
         var req = new TdApi.GetChatHistory(chatId, fromMessage, 0, Math.min(limit, 100), false);
         return client.send(req).get().messages;
     }
 
-    public List<TdApi.Message> getMessages(long chatId, Long fromMessageId, int amount, Predicate<TdApi.Message> filter, Boolean fullyRead) {
+    public List<TdApi.Message> getMessages(long chatId, AtomicLong fromMessageId, int amount, Predicate<TdApi.Message> filter) {
         List<TdApi.Message> result = new ArrayList<>();
         while (amount > 0) {
             TdApi.Message[] messages;
             try {
-                messages = getSomeMessages(chatId, fromMessageId, amount);
+                messages = getSomeMessages(chatId, fromMessageId.get(), amount);
             } catch (InterruptedException | ExecutionException ex) {
                 System.out.println("Exception while retrieving messages: " + ex.getMessage());
+                if (ex.getCause() instanceof TelegramError error && error.getErrorCode() == 400) {
+                    fromMessageId.set(messageDivider);
+                }
                 break;
             }
             for (var msg : messages) {
@@ -124,10 +98,9 @@ public class TelegramBot {
                 }
             }
             if (messages.length == 0) {
-                fullyRead = true;
                 break;
             }
-            fromMessageId = messages[messages.length - 1].id;
+            fromMessageId.set(messages[messages.length - 1].id);
             amount -= messages.length;
         }
         return result;
@@ -172,20 +145,10 @@ public class TelegramBot {
         publisher.publishEvent(new NewMessage(this, update));
     }
 
-    private void onStopCommand(TdApi.Chat chat, TdApi.MessageSender commandSender, String arguments) {
-        if (isAdmin(commandSender)) {
-            System.out.println("Received stop command. closing...");
-            client.sendClose();
-        }
+    private void onUpdateNewChat(TdApi.UpdateNewChat update) {
+        publisher.publishEvent(new NewChat(this, update.chat));
     }
 
-    public boolean isAdmin(TdApi.MessageSender sender) {
-        if (sender instanceof TdApi.MessageSenderUser messageSenderUser) {
-            return messageSenderUser.userId == config.adminId;
-        } else {
-            return false;
-        }
-    }
     @PreDestroy
     public void destructor() throws Exception {
         client.close();

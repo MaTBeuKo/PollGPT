@@ -4,26 +4,24 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @Data
 @Entity
 @Table(name = "polls")
 public class Poll {
-    long chatId;
     String question;
     @Temporal(TemporalType.TIMESTAMP)
     Timestamp timePosted;
     @Id
     long pollId;
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REFRESH)
-    @JoinColumn(name = "chatId", referencedColumnName = "chatId", insertable = false, updatable = false)
-    private Chat chat;
+    @OneToMany(mappedBy = "poll")
+    List<PollChat> pollChat;
 
-    public Poll(long chatId, String question, Timestamp timePosted, long pollId) {
+    public Poll(String question, Timestamp timePosted, long pollId) {
         this.pollId = pollId;
         this.question = question;
         this.timePosted = timePosted;
-        this.chatId = chatId;
     }
 
     public Poll() {

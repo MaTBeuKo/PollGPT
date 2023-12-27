@@ -42,24 +42,30 @@ public class AppConfig {
         config.addAnnotatedClass(AnswerDescription.class);
         config.addAnnotatedClass(Poll.class);
         config.addAnnotatedClass(Chat.class);
+        config.addAnnotatedClass(PollChat.class);
         return config.buildSessionFactory();
     }
-    @Bean ProcessBuilder processBuilder(){
+
+    @Bean
+    ProcessBuilder processBuilder() {
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.redirectErrorStream(true);
         return processBuilder;
     }
+
     @Bean
-    G4FStrategy g4FStrategy(){
-        return G4FStrategy.SYNC_ONE;
+    G4FStrategy g4FStrategy() {
+        return G4FStrategy.ASYNC_ONE;
     }
+
     @Value("${proxyFile}")
     private String proxyFile;
+
     @Bean
-    List<String> proxies(){
+    List<String> proxies() {
         try {
             return Files.readAllLines(Path.of(proxyFile));
-        }catch (IOException ex){
+        } catch (IOException ex) {
             System.out.println("Exception, couldn't read proxy file: " + ex.getMessage());
             return new ArrayList<>();
         }

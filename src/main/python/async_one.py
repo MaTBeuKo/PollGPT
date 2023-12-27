@@ -4,6 +4,7 @@ import asyncio
 import sys
 outfilename = sys.argv[1]
 question = sys.argv[2]
+myproxy = sys.argv[3]
 g4f.debug.logging = True
 g4f.debug.check_version = False
 _providers = [
@@ -22,9 +23,8 @@ async def run_provider(provider: g4f.Provider.BaseProvider):
             model=g4f.models.default,
             messages=[{"role": "user", "content": question}],
             provider=provider,
-            proxy="socks5://GXBefY:qPNTxD@212.102.146.68:8000"
+            proxy=myproxy
         )
-        # return f"{provider.__name__}:" + "MMMstart" + response + "MMM"
         return response
 def pr(string):
     f = open(outfilename, "w", encoding="utf-8")
